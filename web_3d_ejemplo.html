@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Agencia Digital</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050508;
+  --surface:#0D0D14;
+  --accent:#6C63FF;
+  --accent2:#FF6584;
+  --accent3:#43E8D8;
+  --white:#F0EEFF;
+  --muted:#5A5870;
+  --border:rgba(108,99,255,0.15);
+}
+html{scroll-behavior:auto}
+body{
+  background:var(--bg);
+  color:var(--white);
+  font-family:'Syne',sans-serif;
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* CURSOR */
+#c{position:fixed;width:10px;height:10px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width .3s,height .3s,background .3s}
+#cr{position:fixed;width:36px;height:36px;border:1px solid rgba(108,99,255,.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform .12s ease-out,width .3s,height .3s}
+body:has(a:hover) #c, body:has(button:hover) #c{width:18px;height:18px;background:var(--accent2)}
+body:has(a:hover) #cr, body:has(button:hover) #cr{width:56px;height:56px;opacity:.3}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;width:100%;z-index:200;
+  padding:1.8rem 4rem;
+  display:flex;justify-content:space-between;align-items:center;
+  backdrop-filter:blur(0px);
+  transition:backdrop-filter .5s,background .5s;
+}
+nav.scrolled{backdrop-filter:blur(20px);background:rgba(5,5,8,.7);border-bottom:1px solid var(--border)}
+.nav-logo{font-size:1.4rem;font-weight:800;letter-spacing:.15em;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:3rem;list-style:none}
+.nav-links a{color:rgba(240,238,255,.5);text-decoration:none;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;transition:color .3s}
+.nav-links a:hover{color:var(--white)}
+.nav-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+  padding:.6rem 1.4rem;
+  border:1px solid var(--accent);
+  background:transparent;color:var(--accent);
+  cursor:none;transition:background .3s,color .3s;
+}
+.nav-btn:hover{background:var(--accent);color:var(--white)}
+
+/* HERO */
+#hero{
+  height:100vh;position:relative;
+  display:flex;align-items:center;
+  overflow:hidden;
+}
+#canvas3d{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  z-index:0;
+}
+.hero-inner{
+  position:relative;z-index:2;
+  padding:0 4rem;
+  max-width:55%;
+}
+.hero-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.65rem;letter-spacing:.4em;
+  color:var(--accent3);text-transform:uppercase;
+  margin-bottom:2rem;
+  opacity:0;
+  display:flex;align-items:center;gap:1rem;
+}
+.hero-tag::before{content:'';width:30px;height:1px;background:var(--accent3)}
+.hero-h1{
+  font-size:clamp(3.5rem,7vw,7.5rem);
+  font-weight:800;
+  line-height:.95;
+  margin-bottom:2rem;
+  overflow:hidden;
+}
+.hero-h1 .line{display:block;overflow:hidden}
+.hero-h1 .word{display:inline-block;transform:translateY(110%)}
+.hero-h1 em{
+  font-family:'DM Serif Display',serif;
+  font-style:italic;font-weight:400;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-p{
+  font-family:'DM Serif Display',serif;
+  font-style:italic;
+  color:var(--muted);
+  font-size:1.15rem;
+  line-height:1.8;
+  max-width:420px;
+  margin-bottom:3rem;
+  opacity:0;
+}
+.hero-actions{display:flex;gap:1.5rem;opacity:0}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:var(--white);padding:.9rem 2.2rem;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+  border:none;cursor:none;position:relative;overflow:hidden;transition:transform .3s;
+}
+.btn-primary:hover{transform:translateY(-3px)}
+.btn-outline{
+  border:1px solid var(--border);color:var(--white);padding:.9rem 2.2rem;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+  background:transparent;cursor:none;transition:border-color .3s,transform .3s;
+}
+.btn-outline:hover{border-color:var(--accent);transform:translateY(-3px)}
+
+/* SCROLL HINT */
+.scroll-hint{
+  position:absolute;bottom:2.5rem;left:4rem;z-index:2;
+  display:flex;flex-direction:column;align-items:flex-start;gap:.75rem;
+  opacity:0;
+}
+.scroll-label{font-family:'JetBrains Mono',monospace;font-size:.55rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+.scroll-bar{width:1px;height:60px;background:var(--border);position:relative;overflow:hidden}
+.scroll-bar::after{content:'';position:absolute;top:-100%;left:0;width:100%;height:100%;background:linear-gradient(to bottom,transparent,var(--accent));animation:scrollAnim 2s infinite}
+@keyframes scrollAnim{to{top:200%}}
+
+/* MARQUEE */
+.marquee-wrap{
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  overflow:hidden;padding:1.2rem 0;
+  background:var(--surface);
+}
+.marquee{display:flex;gap:0;white-space:nowrap;animation:marquee 20s linear infinite}
+.marquee-item{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.65rem;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--muted);padding:0 3rem;
+  display:flex;align-items:center;gap:3rem;
+}
+.marquee-item span{color:var(--accent);font-size:1rem}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* SECTION BASE */
+section{position:relative}
+.s-label{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  letter-spacing:.4em;color:var(--accent3);text-transform:uppercase;
+  margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem;
+}
+.s-label::before{content:'';width:24px;height:1px;background:var(--accent3)}
+
+/* WORK SECTION */
+#work{padding:10rem 4rem;background:var(--bg)}
+.work-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:5rem}
+.work-title{font-size:clamp(2.5rem,5vw,5rem);font-weight:800;line-height:1}
+.work-title em{font-family:'DM Serif Display',serif;font-style:italic;font-weight:400;display:block;color:var(--muted)}
+.work-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.work-card{
+  position:relative;overflow:hidden;
+  aspect-ratio:4/3;
+  background:var(--surface);
+  cursor:none;
+}
+.work-card:first-child{grid-row:span 2;aspect-ratio:auto}
+.card-canvas{width:100%;height:100%;display:block}
+.card-info{
+  position:absolute;bottom:0;left:0;width:100%;
+  padding:2.5rem;
+  background:linear-gradient(to top,rgba(5,5,8,.95),transparent);
+  transform:translateY(30px);opacity:0;
+  transition:transform .5s cubic-bezier(.23,1,.32,1),opacity .5s;
+}
+.work-card:hover .card-info{transform:translateY(0);opacity:1}
+.card-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.3em;color:var(--accent3);text-transform:uppercase;margin-bottom:.5rem}
+.card-name{font-size:1.8rem;font-weight:800;margin-bottom:.3rem}
+.card-year{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted)}
+.card-arrow{
+  position:absolute;top:1.5rem;right:1.5rem;
+  width:44px;height:44px;
+  border:1px solid var(--border);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;
+  transform:scale(0);opacity:0;
+  transition:transform .4s,opacity .4s,background .3s;
+}
+.work-card:hover .card-arrow{transform:scale(1);opacity:1;background:var(--accent)}
+
+/* SERVICES */
+#services{padding:10rem 4rem;background:var(--surface)}
+.services-title{font-size:clamp(2.5rem,5vw,5rem);font-weight:800;line-height:1;margin-bottom:1rem}
+.services-sub{font-family:'DM Serif Display',serif;font-style:italic;color:var(--muted);font-size:1.1rem;margin-bottom:6rem;max-width:500px}
+.services-list{display:grid;gap:0}
+.service-row{
+  display:grid;grid-template-columns:80px 1fr auto;
+  align-items:center;gap:3rem;
+  padding:2.5rem 0;
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+  cursor:none;
+  transition:padding .4s cubic-bezier(.23,1,.32,1);
+}
+.service-row::before{
+  content:'';position:absolute;
+  left:0;top:0;width:0;height:100%;
+  background:linear-gradient(to right,rgba(108,99,255,.05),transparent);
+  transition:width .5s cubic-bezier(.23,1,.32,1);
+}
+.service-row:hover::before{width:100%}
+.service-row:hover{padding-left:1.5rem}
+.service-num{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);letter-spacing:.2em}
+.service-name{font-size:1.6rem;font-weight:800}
+.service-name small{display:block;font-size:.7rem;font-weight:400;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:.2em;margin-top:.3rem}
+.service-price{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:.1em;text-align:right}
+
+/* CONTACT */
+#contact{padding:10rem 4rem;background:var(--bg);display:grid;grid-template-columns:1fr 1fr;gap:8rem;align-items:start}
+.contact-left h2{font-size:clamp(2.5rem,5vw,5rem);font-weight:800;line-height:1;margin-bottom:2rem}
+.contact-left h2 em{font-family:'DM Serif Display',serif;font-style:italic;font-weight:400;color:var(--accent)}
+.contact-left p{font-family:'DM Serif Display',serif;font-style:italic;color:var(--muted);font-size:1.05rem;line-height:1.9;margin-bottom:3rem}
+.contact-detail{display:flex;flex-direction:column;gap:1.5rem}
+.detail-item{display:flex;gap:1.5rem;align-items:flex-start;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
+.detail-item:last-child{border-bottom:none}
+.detail-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.25em;color:var(--muted);text-transform:uppercase;min-width:80px;margin-top:.2rem}
+.detail-val{font-size:.95rem;color:var(--white)}
+.contact-form{display:flex;flex-direction:column;gap:2rem}
+.f-group{position:relative}
+.f-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.25em;color:var(--accent);text-transform:uppercase;display:block;margin-bottom:.75rem}
+.f-input{
+  width:100%;background:transparent;
+  border:none;border-bottom:1px solid var(--border);
+  padding:.75rem 0;color:var(--white);
+  font-family:'Syne',sans-serif;font-size:.95rem;
+  outline:none;transition:border-color .3s;cursor:none;
+}
+.f-input:focus{border-bottom-color:var(--accent)}
+.f-input::placeholder{color:var(--muted)}
+select.f-input option{background:var(--surface)}
+.f-line{position:absolute;bottom:0;left:0;width:0;height:1px;background:linear-gradient(to right,var(--accent),var(--accent2));transition:width .4s}
+.f-group:focus-within .f-line{width:100%}
+.submit{
+  width:100%;padding:1.1rem;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:var(--white);border:none;cursor:none;
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.25em;text-transform:uppercase;
+  transition:opacity .3s,transform .3s;margin-top:1rem;
+}
+.submit:hover{opacity:.85;transform:translateY(-2px)}
+
+/* FOOTER */
+footer{
+  padding:4rem;background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.f-logo{font-size:1.4rem;font-weight:800;letter-spacing:.15em;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+footer p{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.15em}
+.made{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent3);letter-spacing:.1em}
+
+/* NOTIF */
+#notif{
+  position:fixed;bottom:2rem;right:2rem;
+  padding:1rem 2rem;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:var(--white);font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;
+  z-index:999;transform:translateX(200%);
+  transition:transform .5s cubic-bezier(.23,1,.32,1);
+}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(50px);transition:opacity .9s cubic-bezier(.23,1,.32,1),transform .9s cubic-bezier(.23,1,.32,1)}
+.reveal.on{opacity:1;transform:translateY(0)}
+
+@media(max-width:900px){
+  nav{padding:1.2rem 1.5rem}
+  .nav-links{display:none}
+  .hero-inner{max-width:100%;padding:0 1.5rem}
+  #work{padding:6rem 1.5rem}
+  .work-grid{grid-template-columns:1fr}
+  .work-card:first-child{grid-row:auto}
+  #services{padding:6rem 1.5rem}
+  .service-row{grid-template-columns:50px 1fr;gap:1.5rem}
+  .service-price{display:none}
+  #contact{padding:6rem 1.5rem;grid-template-columns:1fr;gap:4rem}
+  footer{padding:2rem 1.5rem;flex-direction:column;gap:1rem;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<div id="c"></div>
+<div id="cr"></div>
+<div id="notif">✓ Mensaje enviado — te escribimos pronto</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">NEXUS</div>
+  <ul class="nav-links">
+    <li><a href="#work">Trabajo</a></li>
+    <li><a href="#services">Servicios</a></li>
+    <li><a href="#contact">Contacto</a></li>
+  </ul>
+  <button class="nav-btn" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Empezar proyecto</button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="canvas3d"></canvas>
+  <div class="hero-inner">
+    <div class="hero-tag">Estudio Digital — Vigo 2025</div>
+    <h1 class="hero-h1">
+      <span class="line"><span class="word">Webs que</span></span>
+      <span class="line"><span class="word"><em>impactan</em></span></span>
+      <span class="line"><span class="word">de verdad</span></span>
+    </h1>
+    <p class="hero-p">Diseñamos experiencias digitales que convierten visitantes en clientes. Cada píxel tiene un propósito.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('work').scrollIntoView({behavior:'smooth'})">Ver proyectos</button>
+      <button class="btn-outline" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Hablar del tuyo</button>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-bar"></div>
+    <span class="scroll-label">Scroll</span>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee">
+    <div class="marquee-item">Three.js <span>✦</span> GSAP <span>✦</span> Webflow <span>✦</span> React <span>✦</span> Framer <span>✦</span> Next.js <span>✦</span> Diseño UI/UX <span>✦</span> E-commerce <span>✦</span> SEO <span>✦</span> Branding <span>✦</span></div>
+    <div class="marquee-item">Three.js <span>✦</span> GSAP <span>✦</span> Webflow <span>✦</span> React <span>✦</span> Framer <span>✦</span> Next.js <span>✦</span> Diseño UI/UX <span>✦</span> E-commerce <span>✦</span> SEO <span>✦</span> Branding <span>✦</span></div>
+  </div>
+</div>
+
+<!-- WORK -->
+<section id="work">
+  <div class="work-header">
+    <div>
+      <div class="s-label reveal">Proyectos seleccionados</div>
+      <h2 class="work-title reveal" style="transition-delay:.1s">Trabajo<em>reciente</em></h2>
+    </div>
+    <a href="#" style="font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.2em;color:var(--muted);text-decoration:none;text-transform:uppercase" class="reveal">Ver todo →</a>
+  </div>
+  <div class="work-grid reveal" style="transition-delay:.2s">
+    <div class="work-card" id="card1">
+      <canvas class="card-canvas" id="cc1"></canvas>
+      <div class="card-info">
+        <div class="card-tag">Restaurante · Vigo</div>
+        <div class="card-name">Casa Galicia</div>
+        <div class="card-year">2025</div>
+      </div>
+      <div class="card-arrow">↗</div>
+    </div>
+    <div class="work-card" id="card2">
+      <canvas class="card-canvas" id="cc2"></canvas>
+      <div class="card-info">
+        <div class="card-tag">Barbería · Pontevedra</div>
+        <div class="card-name">Corte Norte</div>
+        <div class="card-year">2025</div>
+      </div>
+      <div class="card-arrow">↗</div>
+    </div>
+    <div class="work-card" id="card3">
+      <canvas class="card-canvas" id="cc3"></canvas>
+      <div class="card-info">
+        <div class="card-tag">Tienda · Ourense</div>
+        <div class="card-name">Moda Atlántica</div>
+        <div class="card-year">2025</div>
+      </div>
+      <div class="card-arrow">↗</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="s-label reveal">Lo que hago</div>
+  <h2 class="services-title reveal" style="transition-delay:.1s">Servicios</h2>
+  <p class="services-sub reveal" style="transition-delay:.2s">Cada negocio necesita una solución diferente. Aquí están las mías.</p>
+  <div class="services-list">
+    <div class="service-row reveal"><span class="service-num">01</span><div class="service-name">Web de Negocio<small>Landing · Corporativa · Portfolio</small></div><span class="service-price">desde 150€</span></div>
+    <div class="service-row reveal" style="transition-delay:.1s"><span class="service-num">02</span><div class="service-name">Tienda Online<small>E-commerce · Catálogo · Pagos</small></div><span class="service-price">desde 350€</span></div>
+    <div class="service-row reveal" style="transition-delay:.2s"><span class="service-num">03</span><div class="service-name">Web 3D Premium<small>Three.js · GSAP · Animaciones</small></div><span class="service-price">desde 600€</span></div>
+    <div class="service-row reveal" style="transition-delay:.3s"><span class="service-num">04</span><div class="service-name">Rediseño Web<small>Mejora · Velocidad · SEO</small></div><span class="service-price">desde 200€</span></div>
+    <div class="service-row reveal" style="transition-delay:.4s"><span class="service-num">05</span><div class="service-name">Mantenimiento<small>Actualizaciones · Soporte · Hosting</small></div><span class="service-price">25€/mes</span></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-left">
+    <div class="s-label reveal">Hablemos</div>
+    <h2 class="reveal" style="transition-delay:.1s">¿Tienes un<br><em>proyecto</em><br>en mente?</h2>
+    <p class="reveal" style="transition-delay:.2s">Cuéntame qué necesitas. En menos de 24 horas tienes una propuesta personalizada sin compromiso.</p>
+    <div class="contact-detail reveal" style="transition-delay:.3s">
+      <div class="detail-item"><span class="detail-label">Email</span><span class="detail-val">hola@tunombre.es</span></div>
+      <div class="detail-item"><span class="detail-label">Ubicación</span><span class="detail-val">Vigo, Galicia — remoto toda España</span></div>
+      <div class="detail-item"><span class="detail-label">Respuesta</span><span class="detail-val">Menos de 24 horas garantizado</span></div>
+    </div>
+  </div>
+  <div class="contact-form reveal" style="transition-delay:.2s">
+    <div class="f-group">
+      <label class="f-label">Tu nombre</label>
+      <input class="f-input" type="text" placeholder="Nombre completo" id="fn">
+      <div class="f-line"></div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Email o WhatsApp</label>
+      <input class="f-input" type="text" placeholder="Para contactarte" id="fc">
+      <div class="f-line"></div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Tipo de negocio</label>
+      <input class="f-input" type="text" placeholder="Ej: restaurante, barbería, tienda..." id="fb">
+      <div class="f-line"></div>
+    </div>
+    <div class="f-group">
+      <label class="f-label">Presupuesto aproximado</label>
+      <select class="f-input" id="fp">
+        <option value="">Elige un rango</option>
+        <option>Menos de 200€</option>
+        <option>200€ – 400€</option>
+        <option>400€ – 800€</option>
+        <option>Más de 800€</option>
+      </select>
+      <div class="f-line"></div>
+    </div>
+    <button class="submit" id="sendBtn">Enviar propuesta →</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="f-logo">NEXUS</div>
+  <p>© 2025 — Todos los derechos reservados</p>
+  <span class="made">Diseño & código por tu nombre</span>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ─── CURSOR ────────────────────────────────────────
+const cur = document.getElementById('c');
+const ring = document.getElementById('cr');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function animRing(){
+  rx+=(mx-rx)*.1; ry+=(my-ry)*.1;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+})();
+
+// ─── NAV SCROLL ────────────────────────────────────
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY>80);
+});
+
+// ─── HERO 3D (Three.js) ───────────────────────────
+const hCanvas = document.getElementById('canvas3d');
+const renderer = new THREE.WebGLRenderer({canvas:hCanvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,.1,1000);
+camera.position.z = 5;
+
+// Torus knot principal
+const torusGeo = new THREE.TorusKnotGeometry(1.8,0.45,200,32,2,3);
+const torusMat = new THREE.MeshStandardMaterial({
+  color:0x6C63FF,
+  wireframe:false,
+  roughness:.2,
+  metalness:.9,
+  emissive:0x2a1a5e,
+  emissiveIntensity:.3,
+});
+const torus = new THREE.Mesh(torusGeo,torusMat);
+torus.position.set(3,0,0);
+scene.add(torus);
+
+// Wireframe overlay
+const wireMat = new THREE.MeshBasicMaterial({color:0x43E8D8,wireframe:true,opacity:.08,transparent:true});
+const wire = new THREE.Mesh(torusGeo,wireMat);
+wire.position.copy(torus.position);
+scene.add(wire);
+
+// Particles
+const pGeo = new THREE.BufferGeometry();
+const pCount = 3000;
+const pPos = new Float32Array(pCount*3);
+const pCol = new Float32Array(pCount*3);
+const colors = [
+  [0.424,0.388,1],  // accent
+  [1,0.396,0.518],  // accent2
+  [0.263,0.91,0.847] // accent3
+];
+for(let i=0;i<pCount;i++){
+  pPos[i*3]=(Math.random()-0.5)*20;
+  pPos[i*3+1]=(Math.random()-0.5)*20;
+  pPos[i*3+2]=(Math.random()-0.5)*20;
+  const c=colors[Math.floor(Math.random()*colors.length)];
+  pCol[i*3]=c[0];pCol[i*3+1]=c[1];pCol[i*3+2]=c[2];
+}
+pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
+const pMat = new THREE.PointsMaterial({size:.025,vertexColors:true,transparent:true,opacity:.6});
+const points = new THREE.Points(pGeo,pMat);
+scene.add(points);
+
+// Lights
+const amb = new THREE.AmbientLight(0xffffff,.2);
+scene.add(amb);
+const pt1 = new THREE.PointLight(0x6C63FF,3,20);
+pt1.position.set(-3,3,3); scene.add(pt1);
+const pt2 = new THREE.PointLight(0xFF6584,2,20);
+pt2.position.set(6,-2,2); scene.add(pt2);
+const pt3 = new THREE.PointLight(0x43E8D8,1.5,20);
+pt3.position.set(0,4,-2); scene.add(pt3);
+
+// Mouse 3D
+let mRx=0,mRy=0;
+document.addEventListener('mousemove',e=>{
+  mRx=(e.clientY/window.innerHeight-.5)*1.2;
+  mRy=(e.clientX/window.innerWidth-.5)*1.2;
+});
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+let t3=0;
+function render3D(){
+  t3+=.005;
+  torus.rotation.x+=.004;
+  torus.rotation.y+=.007;
+  wire.rotation.copy(torus.rotation);
+  points.rotation.y+=.0005;
+  // Mouse parallax
+  torus.position.y=Math.sin(t3)*.3+mRx*.5;
+  torus.position.x=3+mRy*.3;
+  wire.position.copy(torus.position);
+  // Light animation
+  pt1.position.x=Math.sin(t3*1.3)*4;
+  pt1.position.y=Math.cos(t3*.8)*3;
+  pt2.position.x=6+Math.cos(t3)*2;
+  renderer.render(scene,camera);
+  requestAnimationFrame(render3D);
+}
+render3D();
+
+// ─── GSAP HERO INTRO ──────────────────────────────
+gsap.to('.hero-tag',{opacity:1,y:0,duration:.8,delay:.3,ease:'power3.out'});
+gsap.to('.word',{y:'0%',duration:1,delay:.5,stagger:.15,ease:'power4.out'});
+gsap.to('.hero-p',{opacity:1,duration:.8,delay:1.1,ease:'power3.out'});
+gsap.to('.hero-actions',{opacity:1,y:0,duration:.8,delay:1.3,ease:'power3.out'});
+gsap.to('.scroll-hint',{opacity:1,duration:.8,delay:1.6,ease:'power3.out'});
+
+// ─── SCROLL REVEALS ───────────────────────────────
+const revs = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on')});
+},{threshold:.1});
+revs.forEach(r=>io.observe(r));
+
+// ─── CARD MINI 3D CANVASES ────────────────────────
+function makeCardScene(canvasId, color1, color2, geoType){
+  const cv = document.getElementById(canvasId);
+  if(!cv) return;
+  const r = new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  r.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  const w=cv.offsetWidth||400, h=cv.offsetHeight||300;
+  r.setSize(w,h);
+  const s=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(50,w/h,.1,100);
+  cam.position.z=4;
+  let geo;
+  if(geoType===0) geo=new THREE.IcosahedronGeometry(1.4,1);
+  else if(geoType===1) geo=new THREE.TorusGeometry(1.2,.4,16,60);
+  else geo=new THREE.OctahedronGeometry(1.5,0);
+  const mat=new THREE.MeshStandardMaterial({color:color1,roughness:.3,metalness:.8,emissive:color2,emissiveIntensity:.4});
+  const mesh=new THREE.Mesh(geo,mat);
+  s.add(mesh);
+  const wm=new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,opacity:.04,transparent:true});
+  s.add(new THREE.Mesh(geo,wm));
+  s.add(new THREE.AmbientLight(0xffffff,.3));
+  const pl=new THREE.PointLight(color1,4,20);pl.position.set(2,2,3);s.add(pl);
+  const pl2=new THREE.PointLight(0xff6584,2,20);pl2.position.set(-2,-2,2);s.add(pl2);
+  let mt=0;
+  const card=cv.closest('.work-card');
+  let hov=false;
+  card.addEventListener('mouseenter',()=>hov=true);
+  card.addEventListener('mouseleave',()=>hov=false);
+  (function loop(){
+    mt+=hov?.015:.006;
+    mesh.rotation.x=mt*.4;mesh.rotation.y=mt*.6;
+    r.render(s,cam);requestAnimationFrame(loop);
+  })();
+}
+makeCardScene('cc1',0x6C63FF,0x2a1a5e,0);
+makeCardScene('cc2',0xFF6584,0x5e1a2a,1);
+makeCardScene('cc3',0x43E8D8,0x0d3e3a,2);
+
+// ─── FORM ─────────────────────────────────────────
+document.getElementById('sendBtn').addEventListener('click',()=>{
+  const n=document.getElementById('fn').value.trim();
+  const c=document.getElementById('fc').value.trim();
+  const notif=document.getElementById('notif');
+  if(!n||!c){
+    notif.textContent='⚠ Rellena nombre y contacto';
+    notif.style.background='linear-gradient(135deg,#e74c3c,#c0392b)';
+  } else {
+    notif.textContent='✓ ¡Perfecto '+n+'! Te escribo antes de 24h';
+    notif.style.background='linear-gradient(135deg,#6C63FF,#FF6584)';
+  }
+  notif.style.transform='translateX(0)';
+  setTimeout(()=>notif.style.transform='translateX(200%)',4000);
+});
+</script>
+</body>
+</html>
